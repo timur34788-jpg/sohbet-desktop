@@ -1,10 +1,8 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, session, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, session, dialog, systemPreferences } = require('electron');
 const path = require('path');
 const dns = require('dns');
-
 let mainWindow;
 let tray;
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  ⚙️  AYARLAR — Sadece buraya dokunman yeterli
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -12,20 +10,18 @@ const LIVE_URL   = 'https://timur34788-jpg.github.io/sohbet/';
 const CHECK_HOST = 'github.com';
 const LOCAL_FILE = path.join(__dirname, 'index.html');
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 function isOnline() {
   return new Promise(resolve => {
     dns.lookup(CHECK_HOST, (err) => resolve(!err));
   });
 }
-
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 820,
     minWidth: 900,
     minHeight: 600,
-    title: '🇹🇷 Sohbet',
+    title: 'Nature.co',
     backgroundColor: '#141618',
     webPreferences: {
       nodeIntegration: false,
@@ -36,9 +32,16 @@ function createWindow() {
     show: false,
   });
 
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
     const allowed = ['media', 'notifications', 'display-capture', 'mediaKeySystem'];
     callback(allowed.includes(permission));
+  });
+
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    if (permission === 'display-capture' || permission === 'media') {
+      return true;
+    }
+    return true;
   });
 
   isOnline().then(online => {
@@ -50,33 +53,26 @@ function createWindow() {
       mainWindow.loadFile(LOCAL_FILE);
     }
   });
-
   mainWindow.once('ready-to-show', () => mainWindow.show());
-
   mainWindow.on('close', (e) => {
     if (!app.isQuiting) { e.preventDefault(); mainWindow.hide(); }
   });
-
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
-
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.key === 'F5' || (input.key === 'r' && input.control)) mainWindow.webContents.reload();
     if (input.key === 'F12') mainWindow.webContents.toggleDevTools();
   });
 }
-
 function createTray() {
-  const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#3f0e40"/><text y="46" x="32" text-anchor="middle" font-size="38">💬</text></svg>`;
+  const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#3f0e40"/><text y="46" x="32" text-anchor="middle" font-size="38">🌿</text></svg>`;
   const icon = nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(iconSvg).toString('base64')}`);
-
   tray = new Tray(icon);
-  tray.setToolTip('Sohbet');
-
+  tray.setToolTip('Nature.co');
   const menu = Menu.buildFromTemplate([
-    { label: '💬 Sohbeti Aç', click: () => { mainWindow.show(); mainWindow.focus(); } },
+    { label: '🌿 Nature.co\'yu Aç', click: () => { mainWindow.show(); mainWindow.focus(); } },
     {
       label: '🔄 Güncelle',
       click: () => {
@@ -89,12 +85,28 @@ function createTray() {
     { type: 'separator' },
     { label: '❌ Çıkış', click: () => { app.isQuiting = true; app.quit(); } },
   ]);
-
   tray.setContextMenu(menu);
   tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); });
 }
-
 app.whenReady().then(() => {
+
+  if (process.platform === 'darwin') {
+    const screenStatus = systemPreferences.getMediaAccessStatus('screen');
+    if (screenStatus !== 'granted') {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Ekran Paylaşımı İzni Gerekli',
+        message: 'Ekran paylaşımı için macOS izni gerekiyor.',
+        detail: 'System Settings → Privacy & Security → Screen Recording bölümüne gidip Nature.co uygulamasını etkinleştir, ardından uygulamayı yeniden başlat.',
+        buttons: ['Tamam', 'Ayarları Aç'],
+      }).then(result => {
+        if (result.response === 1) {
+          shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+        }
+      });
+    }
+  }
+
   createWindow();
   createTray();
   app.on('activate', () => {
@@ -102,6 +114,5 @@ app.whenReady().then(() => {
     else { mainWindow.show(); mainWindow.focus(); }
   });
 });
-
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => { app.isQuiting = true; });
