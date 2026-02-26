@@ -43,7 +43,9 @@ function createWindow() {
 
   isOnline().then(online => {
     if (online) {
-      mainWindow.loadURL(LIVE_URL);
+      session.defaultSession.clearCache().then(() => {
+        mainWindow.loadURL(LIVE_URL + '?v=' + Date.now());
+      });
     } else {
       mainWindow.loadFile(LOCAL_FILE);
     }
