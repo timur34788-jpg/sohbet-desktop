@@ -1,0 +1,6 @@
+Bu klasöre ikon dosyalarını ekle:
+  - icon.ico  (Windows)
+  - icon.icns (macOS)
+  - icon.png  (Linux)
+
+İkon yoksa build yine çalışır, Electron varsayılan ikonu kullanır.

@@ -1,0 +1,61 @@
+{
+  "name": "sohbet-app",
+  "version": "1.0.0",
+  "description": "🇹🇷 Türk Sohbet - Masaüstü Uygulaması",
+  "main": "main.js",
+  "author": "Sohbet",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.sohbet.app",
+    "productName": "Sohbet",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "assets/**"
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico",
+      "artifactName": "Sohbet-Kurulum-${version}.exe"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "assets/icon.icns",
+      "artifactName": "Sohbet-${version}-${arch}.dmg",
+      "category": "public.app-category.social-networking"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png",
+      "artifactName": "Sohbet-${version}.AppImage",
+      "category": "Network"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sohbet",
+      "installerLanguages": ["tr_TR", "en_US"],
+      "language": "1055",
+      "installerHeaderIcon": "assets/icon.ico"
+    },
+    "dmg": {
+      "title": "Sohbet Kurulum",
+      "backgroundColor": "#141618"
+    }
+  }
+}
