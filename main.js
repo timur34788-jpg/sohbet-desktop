@@ -1,15 +1,12 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, session, dialog, systemPreferences } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, session, dialog, systemPreferences, desktopCapturer } = require('electron');
 const path = require('path');
 const dns = require('dns');
 let mainWindow;
 let tray;
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  ⚙️  AYARLAR — Sadece buraya dokunman yeterli
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const LIVE_URL   = 'https://timur34788-jpg.github.io/sohbet/';
 const CHECK_HOST = 'github.com';
 const LOCAL_FILE = path.join(__dirname, 'index.html');
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 function isOnline() {
   return new Promise(resolve => {
     dns.lookup(CHECK_HOST, (err) => resolve(!err));
@@ -33,16 +30,23 @@ function createWindow() {
   });
 
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
-    const allowed = ['media', 'notifications', 'display-capture', 'mediaKeySystem'];
-    callback(allowed.includes(permission));
+    callback(true);
   });
 
-  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    if (permission === 'display-capture' || permission === 'media') {
-      return true;
-    }
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
     return true;
   });
+
+  // ── EKRAN PAYLAŞIMI İÇİN ANA ÇÖZÜM ──────────────────────
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    desktopCapturer.getSources({ types: ['screen', 'window'] }).then(sources => {
+      // İlk ekranı otomatik seç (sources[0] = ana ekran)
+      callback({ video: sources[0], audio: 'loopback' });
+    }).catch(() => {
+      callback({});
+    });
+  });
+  // ──────────────────────────────────────────────────────────
 
   isOnline().then(online => {
     if (online) {
@@ -89,24 +93,6 @@ function createTray() {
   tray.on('double-click', () => { mainWindow.show(); mainWindow.focus(); });
 }
 app.whenReady().then(() => {
-
-  if (process.platform === 'darwin') {
-    const screenStatus = systemPreferences.getMediaAccessStatus('screen');
-    if (screenStatus !== 'granted') {
-      dialog.showMessageBox({
-        type: 'info',
-        title: 'Ekran Paylaşımı İzni Gerekli',
-        message: 'Ekran paylaşımı için macOS izni gerekiyor.',
-        detail: 'System Settings → Privacy & Security → Screen Recording bölümüne gidip Nature.co uygulamasını etkinleştir, ardından uygulamayı yeniden başlat.',
-        buttons: ['Tamam', 'Ayarları Aç'],
-      }).then(result => {
-        if (result.response === 1) {
-          shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
-        }
-      });
-    }
-  }
-
   createWindow();
   createTray();
   app.on('activate', () => {
